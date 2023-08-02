@@ -37,9 +37,8 @@ class ExplanationHandler:
         heatmap_img_resized_normalized = self.normalize_img(heatmap_img_resized, b)
 
         plt.imshow(heatmap_img_resized_normalized, cmap=my_cmap, vmin=0, vmax=1)
-        cbar = plt.colorbar(orientation="horizontal", shrink=0.75, ticks=[-1, 0, 1])
         plt.imshow(img, cmap='gray', interpolation='None', alpha=0.15)
-        cbar.ax.set_xticklabels(["least relevant", "", "most relevant"])
+        plt.colorbar(orientation="horizontal", shrink=0.75, ticks=[-1, 0, 1])
 
         if save:
             os.makedirs('results', exist_ok=True)
@@ -47,6 +46,7 @@ class ExplanationHandler:
 
         plt.show()
         plt.close()
+
 
     def heatmap_with_segmentation(self, heatmap_img, binary_mask, sx, sy, img, name, threshold=0.5, save=True):
         b = 10 * ((np.abs(heatmap_img) ** 3.0).mean() ** (1.0 / 3))
@@ -57,7 +57,7 @@ class ExplanationHandler:
         plt.subplots_adjust(left=0, right=1, bottom=0, top=1)
         plt.axis('off')
 
-        # Ensure heatmap_img is 2D and has the same shape as the input image
+    # Ensure heatmap_img is 2D and has the same shape as the input image
         heatmap_img = heatmap_img.squeeze()
         heatmap_img_resized = cv2.resize(heatmap_img, (img.shape[1], img.shape[0]))
 
@@ -67,10 +67,10 @@ class ExplanationHandler:
 
         heatmap_img_resized_normalized = self.normalize_img(heatmap_img_resized, b)
 
-        plt.imshow(heatmap_img_resized, cmap=my_cmap, vmin=-b, vmax=b)
-        cbar = plt.colorbar(orientation="horizontal", shrink=0.75, ticks=[-1, 0, 1])
+        plt.imshow(heatmap_img_resized_normalized, cmap='coolwarm', vmin=0, vmax=1)
+        plt.colorbar(orientation="horizontal", shrink=0.75, ticks=[-1, 0, 1])
 
-        # Resize binary_mask to the same shape as the input image
+    # Resize binary_mask to the same shape as the input image
         binary_mask_resized = cv2.resize(binary_mask.astype(np.uint8), (img.shape[1], img.shape[0]))
         binary_mask_expanded = np.expand_dims(binary_mask_resized, axis=2)
         binary_mask_expanded = np.repeat(binary_mask_expanded, 3, axis=2)
@@ -81,8 +81,8 @@ class ExplanationHandler:
 
         segmented_img_normalized = np.clip(segmented_img / 255.0, 0, 1)
 
-        plt.imshow(heatmap_img_resized_normalized, cmap='coolwarm', vmin=0, vmax=1)
-        plt.imshow(segmented_img_normalized * 255, alpha=0.5, vmin=0, vmax=255)
+        plt.imshow(segmented_img_normalized * 255, cmap='coolwarm', alpha=0.5, vmin=0, vmax=255)  # Overlay segmented regions
+
         plt.axis('off')
 
         if save:
@@ -235,24 +235,6 @@ class ExplanationHandler:
         binary_mask = relevance_map >= segmentation_threshold
 
         self.heatmap_with_segmentation(relevance_map, binary_mask, 10, 10, img_for_overlay, name, save=save)
-        #self.heatmap(relevance_map, 10, 10, img_for_overlay, name, save=save)
+        self.heatmap(relevance_map, 10, 10, img_for_overlay, name, save=save)
 
 
-# # Example usage:
-
-# # Load the pre-trained model
-# model = models.alexnet(pretrained=True)
-
-# # Load and preprocess the input image
-# img_path = 'path_to_your_image.jpg'
-# img = Image.open(img_path)
-# preprocess = transforms.Compose([
-#     transforms.Resize((224, 224)),
-#     transforms.ToTensor(),
-#     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-# ])
-# img = preprocess(img).unsqueeze(0)
-
-# # Create ExplanationHandler instance and generate explanations
-# explainer = ExplanationHandler(model)
-# explainer.explain(img, img_path, model_str="alexnet")
