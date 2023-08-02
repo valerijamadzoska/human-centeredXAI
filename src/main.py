@@ -1,12 +1,9 @@
-refactoring_explanation_handler
-=======
 import sys
 
 #/Users/valerijamadzoska/Desktop/human-centeredXAI/src
 #C:/Users/icke/Desktop/human-centeredXAI-1/src
 sys.path.insert(0, '/Users/valerijamadzoska/Desktop/human-centeredXAI/src')
 
-main
 from matplotlib import pyplot as plt
 from explanation_handler import ExplanationHandler
 from image_handler import ImageHandler
