@@ -9,7 +9,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.colors import ListedColormap
 
-
 class ExplanationHandler:
     def __init__(self, model):
         self.model = model
@@ -17,14 +16,33 @@ class ExplanationHandler:
     def normalize_img(self, img, b):
         return np.clip((img + b) / (2 * b), 0, 1)
 
-    def create_cmap(self):
-        my_cmap = plt.cm.bwr(np.arange(plt.cm.bwr.N))
-        my_cmap[:, 0:3] *= 0.85
-        return ListedColormap(my_cmap)
+    #VORSCHLAG VON DER KI, AM BESTEN IN SEPERATEM SCHRITT MIT DER URSPRUNGS EXPLAIN METHODE ERSETZEN
+    # def explain(self, img, file, model_str, technique="heatmap", addon="default", save=True, segmentation_threshold=0.5):
+    #     explanation_methods = {
+    #         "heatmap": self.heatmap,
+    #         "heatmap_with_segmentation": self.heatmap_with_segmentation,
+    #         "not_yet_known": self.not_yet_known
+    #     }
+        
+    #     addon_methods = {
+    #         "default": self.addon_default,
+    #         "a": self.addon_a,
+    #         "b": self.addon_b,
+    #         "c": self.addon_c
+    #     }
+
+    #     explanation_method = explanation_methods.get(technique, self.heatmap)
+    #     addon_method = addon_methods.get(addon, self.addon_default)
+        
+    #     explanation_result = explanation_method(img, file, model_str, save, segmentation_threshold)
+    #     addon_result = addon_method(explanation_result)
+
+    #     return addon_result
 
     def heatmap(self, R, sx, sy, img, name, save=True):
         b = 10 * ((np.abs(R) ** 3.0).mean() ** (1.0 / 3))
-        my_cmap = self.create_cmap()
+
+        my_cmap = create_cmap()
 
         plt.figure(figsize=(sx, sy))
         plt.subplots_adjust(left=0, right=1, bottom=0, top=1)
@@ -45,12 +63,13 @@ class ExplanationHandler:
             os.makedirs('results', exist_ok=True)
             plt.imsave(os.path.join('results', name + "_heatmap.jpg"), heatmap_img_resized, cmap=my_cmap, vmin=-b, vmax=b)
 
-        plt.show()
-        plt.close()
+    #plt.show()
+        return
 
     def heatmap_with_segmentation(self, heatmap_img, binary_mask, sx, sy, img, name, threshold=0.5, save=True):
         b = 10 * ((np.abs(heatmap_img) ** 3.0).mean() ** (1.0 / 3))
         black_pixel = (0, 0, 0)  # Represents the RGB values for black (0, 0, 0)
+
         my_cmap = self.create_cmap()
 
         plt.figure(figsize=(sx, sy))
@@ -64,6 +83,8 @@ class ExplanationHandler:
         elif heatmap_img_resized.ndim == 2:
             heatmap_img_resized = np.expand_dims(heatmap_img_resized, axis=2)
             heatmap_img_resized = np.repeat(heatmap_img_resized, 3, axis=2)
+        else:
+            pass
 
         heatmap_img_resized_normalized = self.normalize_img(heatmap_img_resized, b)
 
@@ -81,6 +102,7 @@ class ExplanationHandler:
         binary_mask_expanded = np.repeat(binary_mask_expanded, 3, axis=2)
 
         segmented_img = copy.deepcopy(img_for_overlay)
+
         binary_mask_expanded = np.tile(binary_mask[:, :, np.newaxis], (1, 1, segmented_img.shape[2]))
         segmented_img[binary_mask_expanded[:, :, 0] == 0] = black_pixel
 
@@ -105,6 +127,8 @@ class ExplanationHandler:
         plt.show()
         plt.close()
 
+        return
+
     def not_yet_known(self, img, file, model_str, save, segmentation_threshold):
         # Code for the unknown technique
         pass
@@ -125,6 +149,7 @@ class ExplanationHandler:
         # Code for addon c
         pass
 
+
     def newlayer(self, layer, g):
         layer = copy.deepcopy(layer)
 
@@ -143,19 +168,27 @@ class ExplanationHandler:
     def toconv(self, layers, model):
         newlayers = []
         for i, layer in enumerate(layers):
+
             if isinstance(layer, torch.nn.Linear):
-                if model == "alexnet" and i == 1:
-                    m, n = 256, layer.weight.shape[0]
-                    newlayer = torch.nn.Conv2d(m, n, 6)
-                    newlayer.weight = torch.nn.Parameter(layer.weight.reshape(n, m, 6, 6))
-                elif model == "vgg" and i == 0:
-                    m, n = 512, layer.weight.shape[0]
-                    newlayer = torch.nn.Conv2d(m, n, 7)
-                    newlayer.weight = torch.nn.Parameter(layer.weight.reshape(n, m, 7, 7))
+                newlayer = None
+                if model == "alexnet":
+                    if i == 1:
+                        m, n = 256, layer.weight.shape[0]
+                        newlayer = torch.nn.Conv2d(m, n, 6)
+                        newlayer.weight = torch.nn.Parameter(layer.weight.reshape(n, m, 6, 6))
+                    else:
+                        m, n = layer.weight.shape[1], layer.weight.shape[0]
+                        newlayer = torch.nn.Conv2d(m, n, 1)
+                        newlayer.weight = torch.nn.Parameter(layer.weight.reshape(n, m, 1, 1))
                 else:
-                    m, n = layer.weight.shape[1], layer.weight.shape[0]
-                    newlayer = torch.nn.Conv2d(m, n, 1)
-                    newlayer.weight = torch.nn.Parameter(layer.weight.reshape(n, m, 1, 1))
+                    if i == 0:
+                        m, n = 512, layer.weight.shape[0]
+                        newlayer = torch.nn.Conv2d(m, n, 7)
+                        newlayer.weight = torch.nn.Parameter(layer.weight.reshape(n, m, 7, 7))
+                    else:
+                        m, n = layer.weight.shape[1], layer.weight.shape[0]
+                        newlayer = torch.nn.Conv2d(m, n, 1)
+                        newlayer.weight = torch.nn.Parameter(layer.weight.reshape(n, m, 1, 1))
 
                 newlayer.bias = torch.nn.Parameter(layer.bias)
                 newlayers += [newlayer]
@@ -165,17 +198,21 @@ class ExplanationHandler:
 
         return newlayers
 
+    
+
+
+
     def explain(self, model, img, file, model_str, save=True, segmentation_threshold=0.5):
         results_path = 'results/LRP/'
         os.makedirs(results_path, exist_ok=True)
         name = os.path.splitext(os.path.basename(file))[0] + "_" + model_str + '.jpg'
         full_path = os.path.join(results_path, name)
         X = copy.deepcopy(img)
-
+        
         mean = torch.Tensor([0.485, 0.456, 0.406]).reshape(1, -1, 1, 1)
         std = torch.Tensor([0.229, 0.224, 0.225]).reshape(1, -1, 1, 1)
-
-        layers = list(self.model._modules['features']) + self.toconv(list(self.model._modules['classifier']), model_str)
+        
+        layers = list(model._modules['features']) + self.toconv(list(model._modules['classifier']), model_str)
         L = len(layers)
         A = [X] + [None] * L
         for l in range(L):
@@ -224,7 +261,7 @@ class ExplanationHandler:
             if l == layers_map[-1] and model_str == "vgg" and False:
                 print('blaaaaaaaaaaaaaaa')
             elif False:
-                self.heatmap_(np.array(R[l][0]).sum(axis=0), 0.5 * i + 1.5, 0.5 * i + 1.5)
+                heatmap_(np.array(R[l][0]).sum(axis=0), 0.5 * i + 1.5, 0.5 * i + 1.5)
 
         A[0] = A[0].data.requires_grad_(True)
 
@@ -251,21 +288,7 @@ class ExplanationHandler:
             self.heatmap(relevance_map, 10, 10, img_for_overlay, name, save=save)
 
 
-# # Example usage:
-
-# # Load the pre-trained model
-# model = models.alexnet(pretrained=True)
-
-# # Load and preprocess the input image
-# img_path = 'path_to_your_image.jpg'
-# img = Image.open(img_path)
-# preprocess = transforms.Compose([
-#     transforms.Resize((224, 224)),
-#     transforms.ToTensor(),
-#     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-# ])
-# img = preprocess(img).unsqueeze(0)
-
-# # Create ExplanationHandler instance and generate explanations
-# explainer = ExplanationHandler(model)
-# explainer.explain(img, img_path, model_str="alexnet")
+def create_cmap():
+        my_cmap = plt.cm.bwr(np.arange(plt.cm.bwr.N))
+        my_cmap[:, 0:3] *= 0.85
+        return ListedColormap(my_cmap)
