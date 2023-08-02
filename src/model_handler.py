@@ -7,7 +7,7 @@ class ModelHandler:
         self.model.eval()
 
     def load_pretrained_model(self):
-        return models.vgg16(pretrained=True).eval()
+        return models.vgg19(pretrained=True).eval()
 
     def predict_label(self,model,input_tensor):
         with torch.no_grad():
