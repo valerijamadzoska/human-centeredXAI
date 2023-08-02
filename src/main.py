@@ -8,7 +8,16 @@ from matplotlib import pyplot as plt
 from explanation_handler import ExplanationHandler
 from image_handler import ImageHandler
 from model_handler import ModelHandler
+import platform
 
+def check_os():
+    system = platform.system()
+    if system == 'Windows':
+        return 'C:\\Users\\icke\\Downloads\\rooster-1867562_1280.jpg'
+    elif system == 'Darwin':
+        return '/Users/valerijamadzoska/Desktop/bilderBA/rooster-1867562_640.jpg'
+    else:
+        return 'Unknown'
 
 if __name__ == "__main__":
     model_handler = ModelHandler()
@@ -17,7 +26,7 @@ if __name__ == "__main__":
     model = model_handler.load_pretrained_model()
     #/Users/valerijamadzoska/Desktop/bilderBA/rooster-1867562_640.jpg
     #C:\\Users\\icke\\Downloads\\rooster-1867562_1280.jpg
-    image_path = "/Users/valerijamadzoska/Desktop/bilderBA/rooster-1867562_640.jpg"
+    image_path = check_os()
     input_tensor = image_handler.preprocess_image(image_path)
     predicted_label = model_handler.predict_label(model, input_tensor)
 
