@@ -11,37 +11,37 @@ import importlib.util
 from matplotlib.colors import ListedColormap
 
 # Loading and Preprocessing
-def load_pretrained_model():
-    model = models.vgg16(pretrained=True)
-    model.eval()
-    return model
+#def load_pretrained_model():
+    #model = models.vgg16(pretrained=True)
+    #model.eval()
+    #return model
 
-def preprocess_image(image_path):
-    image = Image.open(image_path).convert('RGB')
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-    input_tensor = transform(image).unsqueeze(0)
-    return input_tensor
+#def preprocess_image(image_path):
+    #image = Image.open(image_path).convert('RGB')
+   # transform = transforms.Compose([
+     #   transforms.Resize((224, 224)),
+     #   transforms.ToTensor(),
+     #   transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+  #  ])
+   ## input_tensor = transform(image).unsqueeze(0)
+   # return input_tensor
 
-def predict_label(model, input_tensor):
-    with torch.no_grad():
-        output = model(input_tensor)
-    with open('imagenet_labels.txt') as f:
-        labels = [line.strip() for line in f.readlines()]
-    _, predicted_idx = torch.max(output, 1)
-    return labels[predicted_idx.item()]
+#def predict_label(model, input_tensor):
+   # with torch.no_grad():
+       # output = model(input_tensor)
+   # with open('imagenet_labels.txt') as f:
+    #    labels = [line.strip() for line in f.readlines()]
+  #  _, predicted_idx = torch.max(output, 1)
+  #  return labels[predicted_idx.item()]
 
 # Explanation and Visualization
-def create_cmap():
-    my_cmap = plt.cm.bwr(np.arange(plt.cm.bwr.N))
-    my_cmap[:, 0:3] *= 0.85
-    return ListedColormap(my_cmap)
+#def create_cmap():
+ #   my_cmap = plt.cm.bwr(np.arange(plt.cm.bwr.N))
+  #  my_cmap[:, 0:3] *= 0.85
+   # return ListedColormap(my_cmap)
 
-def normalize_img(img, b):
-    return np.clip((img + b) / (2 * b), 0, 1)
+#def normalize_img(img, b):
+ #   return np.clip((img + b) / (2 * b), 0, 1)
 
 def heatmap(R, sx, sy, img, name, save=True):
     b = 10 * ((np.abs(R) ** 3.0).mean() ** (1.0 / 3))
