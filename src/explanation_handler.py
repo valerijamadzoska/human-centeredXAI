@@ -57,11 +57,11 @@ class ExplanationHandler:
         plt.subplots_adjust(left=0, right=1, bottom=0, top=1)
         plt.axis('off')
 
-        heatmap_img_resized = cv2.resize(heatmap_img, (img.shape[2], img.shape[3]))
+        # Ensure heatmap_img is 2D and has the same shape as the input image
+        heatmap_img = heatmap_img.squeeze()
+        heatmap_img_resized = cv2.resize(heatmap_img, (img.shape[1], img.shape[0]))
 
-        if heatmap_img_resized.ndim == 3:
-            heatmap_img_resized = np.transpose(heatmap_img_resized, (1, 2, 0))
-        elif heatmap_img_resized.ndim == 2:
+        if heatmap_img_resized.ndim == 2:
             heatmap_img_resized = np.expand_dims(heatmap_img_resized, axis=2)
             heatmap_img_resized = np.repeat(heatmap_img_resized, 3, axis=2)
 
@@ -70,17 +70,12 @@ class ExplanationHandler:
         plt.imshow(heatmap_img_resized, cmap=my_cmap, vmin=-b, vmax=b)
         cbar = plt.colorbar(orientation="horizontal", shrink=0.75, ticks=[-1, 0, 1])
 
-        img_np = img.squeeze().cpu().numpy()
-        img_for_overlay = np.transpose(img_np, (1, 2, 0))
-
-        plt.imshow(heatmap_img_resized_normalized, cmap=my_cmap, vmin=0, vmax=1)
-        cbar = plt.colorbar(orientation="horizontal", shrink=0.75, ticks=[-1, 0, 1])
-
+        # Resize binary_mask to the same shape as the input image
         binary_mask_resized = cv2.resize(binary_mask.astype(np.uint8), (img.shape[1], img.shape[0]))
         binary_mask_expanded = np.expand_dims(binary_mask_resized, axis=2)
         binary_mask_expanded = np.repeat(binary_mask_expanded, 3, axis=2)
 
-        segmented_img = copy.deepcopy(img_for_overlay)
+        segmented_img = copy.deepcopy(img)
         binary_mask_expanded = np.tile(binary_mask[:, :, np.newaxis], (1, 1, segmented_img.shape[2]))
         segmented_img[binary_mask_expanded[:, :, 0] == 0] = black_pixel
 
@@ -144,11 +139,7 @@ class ExplanationHandler:
         newlayers = []
         for i, layer in enumerate(layers):
             if isinstance(layer, torch.nn.Linear):
-                if model == "alexnet" and i == 1:
-                    m, n = 256, layer.weight.shape[0]
-                    newlayer = torch.nn.Conv2d(m, n, 6)
-                    newlayer.weight = torch.nn.Parameter(layer.weight.reshape(n, m, 6, 6))
-                elif model == "vgg" and i == 0:
+                if model == "vgg" and i == 0:
                     m, n = 512, layer.weight.shape[0]
                     newlayer = torch.nn.Conv2d(m, n, 7)
                     newlayer.weight = torch.nn.Parameter(layer.weight.reshape(n, m, 7, 7))
@@ -169,7 +160,7 @@ class ExplanationHandler:
         results_path = 'results/LRP/'
         os.makedirs(results_path, exist_ok=True)
         name = os.path.splitext(os.path.basename(file))[0] + "_" + model_str + '.jpg'
-        full_path = os.path.join(results_path, name)
+       # full_path = os.path.join(results_path, name)
         X = copy.deepcopy(img)
 
         mean = torch.Tensor([0.485, 0.456, 0.406]).reshape(1, -1, 1, 1)
@@ -213,16 +204,14 @@ class ExplanationHandler:
             else:
                 R[l] = R[l + 1]
 
-        if model_str == "alexnet":
-            layers_map = [15, 10, 7, 1]
-        else:
-            layers_map = [31, 21, 11, 1]
+        
+        layers_map = [31, 21, 11, 1]
 
         name = os.path.splitext(file)[0]
         name = name + "_" + model_str
         for i, l in enumerate(layers_map):
             if l == layers_map[-1] and model_str == "vgg" and False:
-                print('blaaaaaaaaaaaaaaa')
+                pass
             elif False:
                 self.heatmap_(np.array(R[l][0]).sum(axis=0), 0.5 * i + 1.5, 0.5 * i + 1.5)
 
@@ -245,10 +234,8 @@ class ExplanationHandler:
         relevance_map = np.array(R[0][0]).sum(axis=0)
         binary_mask = relevance_map >= segmentation_threshold
 
-        if model_str == "alexnet":
-            self.heatmap_with_segmentation(relevance_map, binary_mask, 10, 10, img_for_overlay, name, save=save)
-        else:
-            self.heatmap(relevance_map, 10, 10, img_for_overlay, name, save=save)
+        self.heatmap_with_segmentation(relevance_map, binary_mask, 10, 10, img_for_overlay, name, save=save)
+        #self.heatmap(relevance_map, 10, 10, img_for_overlay, name, save=save)
 
 
 # # Example usage:
