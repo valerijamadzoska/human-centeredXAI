@@ -68,38 +68,71 @@ class ExplanationHandler:
 
         return img_with_contours
 
-    def graph(self, relevance_map, img, threshold=0.0007):
+    # threshold=0.0007, block_size=2
+    def graph(self, relevance_map, img, threshold=0.0007, block_size=2):
+        #block size=Größe der Blöcke in denen die Pixel zusammengefasst sind
         # mean and standard deviation values used for image preprocessing
         mean = np.array([0.485, 0.456, 0.406]) 
         std = np.array([0.229, 0.224, 0.225])  
 
         G = nx.Graph()
-        
+
         height, width = relevance_map.shape
-        for y in range(height):
-            for x in range(width):
-                for dy, dx in [(0, 1), (1, 0)]:
+
+        # Schleife über das Relevanz-Map in Blöcken der Größe block_size
+        for y in range(0, height, block_size):
+            for x in range(0, width, block_size):
+                # Überprüfung der benachbarten Blöcke
+                for dy, dx in [(0, block_size), (block_size, 0)]:
                     if 0 <= y + dy < height and 0 <= x + dx < width:
-                        node1 = y * width + x
-                        node2 = (y + dy) * width + (x + dx)
-                        weight = abs(relevance_map[y, x] - relevance_map[y + dy, x + dx])
+                        # Ermittlung der Knoten-ID basierend auf der aktuellen Blockposition
+                        node1 = (y // block_size) * (width // block_size) + (x // block_size)
+                        node2 = ((y + dy) // block_size) * (width // block_size) + ((x + dx) // block_size)
+                        
+                        # Gewicht des Knotens basierend auf dem mittleren Relevanzwert des Blocks berechnen
+                        weight = abs(np.mean(relevance_map[y:y+block_size, x:x+block_size]) - 
+                                    np.mean(relevance_map[y+dy:y+dy+block_size, x+dx:x+dx+block_size]))
                         if weight > threshold:
                             G.add_edge(node1, node2, weight=weight)
 
-        pos = {y * width + x: (x, -y) for y in range(height) for x in range(width)}
+        # Positionen für jeden Knoten (Zentrum des Blocks) berechnen
+        pos = {(y // block_size) * (width // block_size) + (x // block_size): ((x + block_size // 2), -(y + block_size // 2)) 
+            for y in range(0, height, block_size) 
+            for x in range(0, width, block_size)}
+
+        # Liste der Gewichtungen für jede Kante erstellen
         edge_weights = [G[u][v]['weight'] for u, v in G.edges()]
 
-        plt.figure(figsize=(5, 5)) # figure size
+        plt.figure(figsize=(5, 5))  # figure size 
 
-        # Convert the tensor to a numpy array and de-normalize
+        # Bild von Tensor in Numpy Array umwandeln und de-normalisieren
         img = img.squeeze().numpy().transpose(1,2,0) * std + mean 
-        img = (img * 255).astype(np.uint8) # Convert to 8-bit values
+        img = (img * 255).astype(np.uint8)  # Umwandlung in 8-Bit-Werte
 
-        plt.imshow(img, extent=[0, width, -height, 0], alpha=0.3) # alpha=transparency
-
+        plt.imshow(img, extent=[0, width, -height, 0], alpha=0.3)
         nx.draw(G, pos, with_labels=False, node_size=10, edge_color=edge_weights, edge_cmap=plt.cm.Blues)
-        
         plt.show()
+        return G, pos, width, height, img
+
+
+    def fully_connect_and_plot(self, G, img, pos, width, height):
+        fully_connected_G = nx.Graph()
+        nodes = list(G.nodes())
+        for i, node1 in enumerate(nodes):
+            for node2 in nodes[i+1:]:
+                # Gewicht zw. Knoten 
+                weight = 1.0
+                fully_connected_G.add_edge(node1, node2, weight=weight)
+
+        plt.figure(figsize=(5, 5))  # Figure size
+        plt.imshow(img, extent=[0, width, -height, 0], alpha=0.3)
+
+        # Gewichtungen für die Kanten 
+        edge_weights = [fully_connected_G[u][v]['weight'] for u, v in fully_connected_G.edges()]
+
+        nx.draw(fully_connected_G, pos, with_labels=False, node_size=10, edge_color=edge_weights, edge_cmap=plt.cm.Blues)
+        plt.show()
+
 
     def newlayer(self, layer, g):
         layer = copy.deepcopy(layer)
@@ -214,5 +247,8 @@ class ExplanationHandler:
         relevance_map = np.array(R[l][0]).sum(axis=0)
         #print("Min value:", relevance_map.min())
         #print("Max value:", relevance_map.max())
-        graph_img = self.graph(relevance_map, img)
+        G, pos, width, height, img = self.graph(relevance_map, img) 
+        self.fully_connect_and_plot(G, img, pos, width, height)
+
+        
 
