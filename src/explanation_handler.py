@@ -11,6 +11,9 @@ from matplotlib.colors import ListedColormap
 from scipy.spatial.distance import cdist
 import networkx as nx
 import numpy.ma as ma
+from skimage.transform import resize
+from sklearn.cluster import KMeans
+
 
 
 class ExplanationHandler:
@@ -44,29 +47,20 @@ class ExplanationHandler:
         plt.imshow(image_copy, alpha=0.15) #Originalbild mit Transparenz
 
         plt.show()
+        return R
     
-    def segmentation(self, heatmap_data, original_img):
-        """
-        Visualizes the relevance map of LRP as segments on top of the original image.
-        :param heatmap_data: Heatmap data (relevance map) from the LRP.
-        :param original_img: Original image on which the relevance map is overlayed.
-        :return: Image with overlayed relevance segments.
-        """
-
-        # Convert heatmap_data to 8-bit grayscale
-        heatmap_8bit = (heatmap_data * 255).astype(np.uint8)
-
-        # Apply a simple binarization to segment the relevance 
-        _, binary_map = cv2.threshold(heatmap_8bit, 128, 255, cv2.THRESH_BINARY)
-
-        # Find contours in the binary map
-        contours, _ = cv2.findContours(binary_map, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        # Overlay the contours on the original image
-        img_with_contours = original_img.copy()
-        cv2.drawContours(img_with_contours, contours, -1, (0, 255, 0), 1)  # Draw contours with green lines
-
-        return img_with_contours
+    def segmentation(self, heatmap, n_clusters=2):
+        # Form des Heatmaps anpassen, um es als Eingabe für k-Means verwenden zu können
+        x, y = heatmap.shape
+        heatmap_reshaped = heatmap.reshape((-1, 1))
+        
+        # k-Means-Algorithmus anwenden
+        kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(heatmap_reshaped)
+        
+        # Die resultierenden Cluster-Labels in die ursprüngliche Form zurückkonvertieren
+        segmented_heatmap = kmeans.labels_.reshape((x, y))
+        
+        return segmented_heatmap
 
     # threshold=0.0007, block_size=2
     def graph(self, relevance_map, img, threshold=0.0007, block_size=2):
@@ -235,20 +229,13 @@ class ExplanationHandler:
 
         #HEATMAP
         heatmap_fig = self.heatmap(np.array(R[l][0]).sum(axis=0), 3.5, 3.5, img)
-        print(heatmap_fig)
+
         #SEGMENTATION
-        original_img_np = img.squeeze().numpy().transpose(1,2,0)
-        original_img_np = (original_img_np * 255).astype(np.uint8)
-        segmented_img = self.segmentation(np.array(R[l][0]).sum(axis=0), original_img_np)
-        plt.imshow(segmented_img)
-        plt.axis('off')
+        segmented_heatmap = self.segmentation(heatmap_fig)
+        plt.imshow(segmented_heatmap, cmap='tab20b')
         plt.show()
+        
         #GRAPH
         relevance_map = np.array(R[l][0]).sum(axis=0)
-        #print("Min value:", relevance_map.min())
-        #print("Max value:", relevance_map.max())
         G, pos, width, height, img = self.graph(relevance_map, img) 
         self.fully_connect_and_plot(G, img, pos, width, height)
-
-        
-
