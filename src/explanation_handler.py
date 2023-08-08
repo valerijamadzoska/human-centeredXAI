@@ -33,18 +33,27 @@ class ExplanationHandler:
         image_copy = img.squeeze().numpy().transpose(1,2,0) * std + mean 
         image_copy = (image_copy * 255).astype(np.uint8) # Convert to 8-bit values
 
+
+#############HeatmapDefault############Umwandlung in Graustufen
+        image_copy = np.mean(image_copy, axis=2).astype(np.uint8)
+
         my_cmap = self.create_cmap()
         b = 10 * ((np.abs(R) ** 3.0).mean() ** (1.0 / 3))
 
+###############1.1#####1.2########1.3###########
         # R<0 soll nicht angezeigt werden (die blauen Pixel)
-        R[R < 0] = 0
+        #R[R < 0] = 0
+
 
         plt.figure(figsize=(sx, sy))
         plt.subplots_adjust(left=0, right=1, bottom=0, top=1)
         plt.axis('off')
 
         plt.imshow(R, cmap=my_cmap, vmin=-b, vmax=b) 
-        plt.imshow(image_copy, alpha=0.15) #Originalbild mit Transparenz
+        cbar = plt.colorbar(orientation="horizontal", shrink=0.75, ticks=[-b, 0, b])
+        plt.imshow(image_copy, cmap='gray', alpha=0.15) #Originalbild mit Transparenz
+        cbar.ax.set_xticklabels(["weniger relevante Pixel", "", "relevanteste Pixel"])
+
 
         plt.show()
         return R
@@ -232,8 +241,12 @@ class ExplanationHandler:
 
         #SEGMENTATION
         segmented_heatmap = self.segmentation(heatmap_fig)
-        plt.imshow(segmented_heatmap, cmap='tab20b')
+        plt.axis('off')
+        plt.imshow(segmented_heatmap, cmap='winter', vmin=0, vmax=1)
+        cbar = plt.colorbar(orientation="horizontal", shrink=0.75, ticks=[0, 1])
+        cbar.ax.set_xticklabels(["Hintergrund", "relevanteste Bereiche"])
         plt.show()
+
         
         #GRAPH
         relevance_map = np.array(R[l][0]).sum(axis=0)

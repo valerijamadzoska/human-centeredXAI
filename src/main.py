@@ -15,7 +15,7 @@ def check_os():
     if system == 'Windows':
         #C:\\Users\\icke\\Downloads\\rooster-1867562_1280.jpg
         #C:\\Users\\icke\\Downloads\\ILSVRC2012_test_00000002.JPEG
-        return 'C:\\Users\\icke\\Downloads\\ILSVRC2012_test_00000015.JPEG'
+        return 'C:\\Users\\icke\\Desktop\\InputImg\\ILSVRC2012_test_00000082.jpg'
     elif system == 'Darwin':
         return '/Users/valerijamadzoska/Desktop/bilderBA/rooster-1867562_640.jpg'
     else:
