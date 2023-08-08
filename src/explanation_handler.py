@@ -12,6 +12,7 @@ from scipy.spatial.distance import cdist
 import networkx as nx
 import numpy.ma as ma
 from skimage.transform import resize
+from sklearn.cluster import KMeans
 
 
 
@@ -48,39 +49,18 @@ class ExplanationHandler:
         plt.show()
         return R
     
-    def segmentation(self, R, img, threshold=0.01):
-        if len(R.shape) != 3:
-            raise ValueError("Heatmap R should be a 3D matrix with dimensions (channels, height, width)")
-
-        relevance_map = torch.mean(R, dim=0).detach().cpu().numpy()
+    def segmentation(self, heatmap, n_clusters=2):
+        # Form des Heatmaps anpassen, um es als Eingabe für k-Means verwenden zu können
+        x, y = heatmap.shape
+        heatmap_reshaped = heatmap.reshape((-1, 1))
         
-        # Debugging prints
-        print(f"Relevance Map Min: {relevance_map.min()}, Max: {relevance_map.max()}, Mean: {relevance_map.mean()}, Std: {relevance_map.std()}")
+        # k-Means-Algorithmus anwenden
+        kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(heatmap_reshaped)
         
-        mean = np.array([0.485, 0.456, 0.406])
-        std = np.array([0.229, 0.224, 0.225])
-        segmented_image = img.squeeze().numpy().transpose(1, 2, 0) * std + mean
-        segmented_image = (segmented_image * 255).astype(np.uint8)
-
-        segmentation_map = relevance_map > threshold
-        segmentation_map_resized = resize(segmentation_map.astype(np.uint8), segmented_image.shape[:2], mode='constant')
-        segmentation_map_resized = segmentation_map_resized.astype(bool)
-
-        # Debugging prints
-        print(f"Segmentation Map Resized Unique Values: {np.unique(segmentation_map_resized)}")
+        # Die resultierenden Cluster-Labels in die ursprüngliche Form zurückkonvertieren
+        segmented_heatmap = kmeans.labels_.reshape((x, y))
         
-        green_color = np.array([0, 255, 0], dtype=np.uint8)
-        red_color = np.array([255, 0, 0], dtype=np.uint8)
-        segmented_image[segmentation_map_resized] = green_color
-        segmented_image[~segmentation_map_resized] = red_color
-
-        plt.imshow(segmented_image)
-        plt.axis('off')
-        plt.show()
-
-        return segmented_image
-
-        
+        return segmented_heatmap
 
     # threshold=0.0007, block_size=2
     def graph(self, relevance_map, img, threshold=0.0007, block_size=2):
@@ -249,11 +229,11 @@ class ExplanationHandler:
 
         #HEATMAP
         heatmap_fig = self.heatmap(np.array(R[l][0]).sum(axis=0), 3.5, 3.5, img)
-        #print(heatmap_fig)
+
         #SEGMENTATION
-        print("Relevance map shape:", np.array(R[-1][0]).sum(axis=0).shape)
-        relevance_map = self.heatmap(R[-1][0], 3.5, 3.5, img)
-        self.segmentation(relevance_map, img, 0.01)
+        segmented_heatmap = self.segmentation(heatmap_fig)
+        plt.imshow(segmented_heatmap, cmap='tab20b')
+        plt.show()
         
         #GRAPH
         relevance_map = np.array(R[l][0]).sum(axis=0)

@@ -13,7 +13,9 @@ import platform
 def check_os():
     system = platform.system()
     if system == 'Windows':
-        return 'C:\\Users\\icke\\Downloads\\rooster-1867562_1280.jpg'
+        #C:\\Users\\icke\\Downloads\\rooster-1867562_1280.jpg
+        #C:\\Users\\icke\\Downloads\\ILSVRC2012_test_00000002.JPEG
+        return 'C:\\Users\\icke\\Downloads\\ILSVRC2012_test_00000015.JPEG'
     elif system == 'Darwin':
         return '/Users/valerijamadzoska/Desktop/bilderBA/rooster-1867562_640.jpg'
     else:
