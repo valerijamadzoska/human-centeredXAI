@@ -13,6 +13,7 @@ import networkx as nx
 import numpy.ma as ma
 from skimage.transform import resize
 from sklearn.cluster import KMeans
+import matplotlib.colors as mcolors
 
 
 
@@ -20,12 +21,8 @@ class ExplanationHandler:
     def __init__(self, model):
         self.model = model
 
-    def create_cmap(self):
-        my_cmap = plt.cm.bwr(np.arange(plt.cm.bwr.N))
-        my_cmap[:, 0:3] *= 0.85
-        return ListedColormap(my_cmap)
 
-    def heatmap(self, R, sx, sy, img, name=None, save=False):
+    def heatmap(self, R, sx, sy, img, predicted_label, save=True):
         #zunächst Originalbild kopieren und für imshow vorbereiten
         image_copy = np.copy(img)
         mean = np.array([0.485, 0.456, 0.406])
@@ -33,110 +30,202 @@ class ExplanationHandler:
         image_copy = img.squeeze().numpy().transpose(1,2,0) * std + mean 
         image_copy = (image_copy * 255).astype(np.uint8) # Convert to 8-bit values
 
+        # Create a figure and a set of subplots
+        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(sx, sy))
 
-#############HeatmapDefault############Umwandlung in Graustufen
-        image_copy = np.mean(image_copy, axis=2).astype(np.uint8)
-
-        my_cmap = self.create_cmap()
-        b = 10 * ((np.abs(R) ** 3.0).mean() ** (1.0 / 3))
-
-###############1.1#####1.2########1.3###########
-        # R<0 soll nicht angezeigt werden (die blauen Pixel)
-        #R[R < 0] = 0
-
-
-        plt.figure(figsize=(sx, sy))
-        plt.subplots_adjust(left=0, right=1, bottom=0, top=1)
-        plt.axis('off')
-
-        plt.imshow(R, cmap=my_cmap, vmin=-b, vmax=b) 
-        cbar = plt.colorbar(orientation="horizontal", shrink=0.75, ticks=[-b, 0, b])
-        plt.imshow(image_copy, cmap='gray', alpha=0.15) #Originalbild mit Transparenz
-        cbar.ax.set_xticklabels(["weniger relevante Pixel", "", "relevanteste Pixel"])
-
-
+         # Original Image
+        axes[0].imshow(image_copy)
+        axes[0].set_title("Originalbild")
+        axes[0].axis('off')
+        
+        # Heatmap
+        im = axes[1].imshow(R, cmap='turbo')
+        axes[1].set_title("Ergebnis")
+        axes[1].axis('off')
+        
+        # Add colorbar with only min value, 0 and max value
+        cbar_min = np.nanmin(R)
+        cbar_max = np.nanmax(R)
+        cbar = fig.colorbar(im, ax=axes.ravel().tolist(), orientation='horizontal', 
+                            ticks=[cbar_min, 0, cbar_max])
+        cbar.ax.set_xticklabels([cbar_min,0,  cbar_max])
+        
+        if save:
+            output_dir = "Output"
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            
+            # Konvertieren Sie predicted_label in einen String, falls es ein Tensor oder eine andere Datenstruktur ist
+            label_str = predicted_label.replace(':', '_').replace(' ', '_').replace(',', '')
+    
+            output_path = os.path.join(output_dir, f"heatmap{label_str}.png")
+            try:
+                plt.savefig(output_path, bbox_inches='tight', format='png')
+            except Exception as e:
+                print(f"Fehler beim Speichern des Bildes: {e}")
+        
         plt.show()
+
         return R
     
-    def segmentation(self, heatmap, n_clusters=2):
-        # Form des Heatmaps anpassen, um es als Eingabe für k-Means verwenden zu können
-        x, y = heatmap.shape
-        heatmap_reshaped = heatmap.reshape((-1, 1))
+    def cluster_relevance_map(self, R, img, predicted_label, save=True, colors=None):
+        # Falls keine Farben angegeben sind, verwende Standardfarben
+        if colors is None:
+            colors = ['lightgray', 'yellow', 'palevioletred']
+        cmap = mcolors.ListedColormap(colors)
         
-        # k-Means-Algorithmus anwenden
-        kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(heatmap_reshaped)
+        # Flattening der Relevance Map
+        R_flattened = R.reshape(-1, 1)
         
-        # Die resultierenden Cluster-Labels in die ursprüngliche Form zurückkonvertieren
-        segmented_heatmap = kmeans.labels_.reshape((x, y))
+        # k-Means-Clustering
+        kmeans = KMeans(n_clusters=3)
+        kmeans.fit(R_flattened)
+        labels = kmeans.predict(R_flattened)
         
-        return segmented_heatmap
-
-    # threshold=0.0007, block_size=2
-    def graph(self, relevance_map, img, threshold=0.0007, block_size=2):
-        #block size=Größe der Blöcke in denen die Pixel zusammengefasst sind
-        # mean and standard deviation values used for image preprocessing
-        mean = np.array([0.485, 0.456, 0.406]) 
+        # Shape der Cluster-Labels an die ursprüngliche Relevance Map anpassen
+        cluster_map = labels.reshape(R.shape)
+        
+        # Bildvorbereitung
+        image_copy = np.copy(img)
+        mean = np.array([0.485, 0.456, 0.406])
         std = np.array([0.229, 0.224, 0.225])  
+        image_copy = img.squeeze().numpy().transpose(1,2,0) * std + mean 
+        image_copy = (image_copy * 255).astype(np.uint8) # Convert to 8-bit values
 
-        G = nx.Graph()
+        # Create a figure and a set of subplots
+        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
 
-        height, width = relevance_map.shape
+        # Original Image
+        axes[0].imshow(image_copy)
+        axes[0].set_title("Originalbild")
+        axes[0].axis('off')
+        
+        # Geclusterte Heatmap
+        img = axes[1].imshow(cluster_map, cmap=cmap)
+        
+        # Erstellen der horizontalen Farbleiste mit drei Tick-Labels entsprechend den Clustern
+        unique_labels = np.unique(cluster_map)
+        cbar = fig.colorbar(img, ax=axes[1], ticks=unique_labels, orientation='horizontal')
+        cbar.ax.set_xticks(unique_labels)  # Place ticks at the left side of each block
+        cbar.ax.set_xticklabels(['Nicht Relevant', 'Wichtiger Bereich', 'Wichtigster Bereich'], ha='left')
+        
+        # Adjust the tick label position to be left of the color blocks
+        for label in cbar.ax.xaxis.get_ticklabels():
+            label.set_horizontalalignment('center')
+        
+        axes[1].set_title("Ergebnis")
+        axes[1].axis('off')
 
-        # Schleife über das Relevanz-Map in Blöcken der Größe block_size
-        for y in range(0, height, block_size):
-            for x in range(0, width, block_size):
-                # Überprüfung der benachbarten Blöcke
-                for dy, dx in [(0, block_size), (block_size, 0)]:
-                    if 0 <= y + dy < height and 0 <= x + dx < width:
-                        # Ermittlung der Knoten-ID basierend auf der aktuellen Blockposition
-                        node1 = (y // block_size) * (width // block_size) + (x // block_size)
-                        node2 = ((y + dy) // block_size) * (width // block_size) + ((x + dx) // block_size)
-                        
-                        # Gewicht des Knotens basierend auf dem mittleren Relevanzwert des Blocks berechnen
-                        weight = abs(np.mean(relevance_map[y:y+block_size, x:x+block_size]) - 
-                                    np.mean(relevance_map[y+dy:y+dy+block_size, x+dx:x+dx+block_size]))
-                        if weight > threshold:
-                            G.add_edge(node1, node2, weight=weight)
-
-        # Positionen für jeden Knoten (Zentrum des Blocks) berechnen
-        pos = {(y // block_size) * (width // block_size) + (x // block_size): ((x + block_size // 2), -(y + block_size // 2)) 
-            for y in range(0, height, block_size) 
-            for x in range(0, width, block_size)}
-
-        # Liste der Gewichtungen für jede Kante erstellen
-        edge_weights = [G[u][v]['weight'] for u, v in G.edges()]
-
-        plt.figure(figsize=(5, 5))  # figure size 
-
-        # Bild von Tensor in Numpy Array umwandeln und de-normalisieren
-        img = img.squeeze().numpy().transpose(1,2,0) * std + mean 
-        img = (img * 255).astype(np.uint8)  # Umwandlung in 8-Bit-Werte
-
-        plt.imshow(img, extent=[0, width, -height, 0], alpha=0.3)
-        nx.draw(G, pos, with_labels=False, node_size=10, edge_color=edge_weights, edge_cmap=plt.cm.Blues)
+        # Speichern des Bildes, wenn `save=True`
+        if save:
+            output_dir = "Output"
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+                
+            label_str = predicted_label.replace(':', '_').replace(' ', '_').replace(',', '')
+            output_path = os.path.join(output_dir, f"clustered_heatmap_{label_str}.png")
+            
+            try:
+                plt.savefig(output_path, bbox_inches='tight', format='png')
+            except Exception as e:
+                print(f"Fehler beim Speichern des Bildes: {e}")
+        
         plt.show()
-        return G, pos, width, height, img
+        return cluster_map
 
+    def contour_relevance_map(self, R, img, predicted_label, save=True):
+        # Prepare the original image for display
+        image_copy = np.copy(img)
+        mean = np.array([0.485, 0.456, 0.406])
+        std = np.array([0.229, 0.224, 0.225])  
+        image_copy = img.squeeze().numpy().transpose(1,2,0) * std + mean 
+        image_copy = (image_copy * 255).astype(np.uint8) # Convert to 8-bit values
 
-    def fully_connect_and_plot(self, G, img, pos, width, height):
-        fully_connected_G = nx.Graph()
-        nodes = list(G.nodes())
-        for i, node1 in enumerate(nodes):
-            for node2 in nodes[i+1:]:
-                # Gewicht zw. Knoten 
-                weight = 1.0
-                fully_connected_G.add_edge(node1, node2, weight=weight)
+        # Create a figure and a set of subplots
+        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
 
-        plt.figure(figsize=(5, 5))  # Figure size
-        plt.imshow(img, extent=[0, width, -height, 0], alpha=0.3)
+        # Display the original image
+        axes[0].imshow(image_copy)
+        axes[0].set_title("Originalbild")
+        axes[0].axis('off')
+        
+        # Calculate the relevance map data
+        R_np = np.array(R)
+        contour_level = R_np.mean() + R_np.std()
 
-        # Gewichtungen für die Kanten 
-        edge_weights = [fully_connected_G[u][v]['weight'] for u, v in fully_connected_G.edges()]
-
-        nx.draw(fully_connected_G, pos, with_labels=False, node_size=10, edge_color=edge_weights, edge_cmap=plt.cm.Blues)
+        
+        # Draw the heatmap and contours
+        im = axes[1].imshow(R_np, cmap='cividis', origin='upper')
+        axes[1].contour(R_np, levels=[contour_level], colors='black')
+        axes[1].set_title("Ergebnis")
+        axes[1].axis('off')
+        
+        # Display colorbar
+        cbar_min = np.nanmin(R)
+        cbar_max = np.nanmax(R)
+        cbar = fig.colorbar(im, ax=axes.ravel().tolist(), orientation='horizontal', ticks=[cbar_min, 0, cbar_max])
+        cbar.ax.set_xticklabels(["nicht relevant",0,  "relevanteste Pixel"])
+        
+        if save:
+            output_dir = "Output"
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            label_str = predicted_label.replace(':', '_').replace(' ', '_').replace(',', '')
+            output_path = os.path.join(output_dir, f"contour_map{label_str}.png")
+            try:
+                plt.savefig(output_path, bbox_inches='tight', format='png')
+            except Exception as e:
+                print(f"Fehler beim Speichern des Bildes: {e}")
+        
         plt.show()
 
 
+
+    def overlay_clustered_on_grayscale(self, img, clustered_image, predicted_label, alpha=0.5, save=True):
+        # Bildvorbereitung
+        image_copy = np.copy(img)
+        mean = np.array([0.485, 0.456, 0.406])
+        std = np.array([0.229, 0.224, 0.225])  
+        image_copy = img.squeeze().numpy().transpose(1,2,0) * std + mean 
+        image_copy = (image_copy * 255).astype(np.uint8) # Convert to 8-bit values
+
+        # Convert original image to grayscale
+        grayscale_image = np.dot(image_copy[...,:3], [0.2989, 0.5870, 0.1140])
+        grayscale_image_rgb = np.stack([grayscale_image]*3, axis=-1).astype(np.uint8)
+
+        # Create a figure and a set of subplots
+        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
+
+        # Original Image
+        axes[0].imshow(image_copy)
+        axes[0].set_title("Originalbild")
+        axes[0].axis('off')
+
+        # clustered on grayscale img
+        axes[1].imshow(grayscale_image_rgb, cmap='gray', alpha=alpha-0.1)
+        im = axes[1].imshow(clustered_image, alpha=alpha)
+        
+        # Add colorbar
+        cbar = fig.colorbar(im, ax=axes[1], orientation='horizontal')
+
+        axes[1].set_title("Ergebnis")
+        axes[1].axis('off')
+
+        if save:
+            output_dir = "Output"
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            
+            # Konvertieren Sie predicted_label in einen String, falls es ein Tensor oder eine andere Datenstruktur ist
+            label_str = predicted_label.replace(':', '_').replace(' ', '_').replace(',', '')
+            output_path = os.path.join(output_dir, f"clusteredOverlay{label_str}.png")
+            try:
+                plt.savefig(output_path, bbox_inches='tight', format='png')
+            except Exception as e:
+                print(f"Fehler beim Speichern des Bildes: {e}")
+
+        plt.show()
+        
     def newlayer(self, layer, g):
         layer = copy.deepcopy(layer)
 
@@ -173,7 +262,7 @@ class ExplanationHandler:
 
         return newlayers
     
-    def explain(self, model, img, file, model_str, save=True):
+    def explain(self, model, img, file, model_str, predicted_label, save=True):
         """
         :param picture: at the moment string to picture location, can be changed to the picture itself
         :param model: the model to use, not the name the whole model itself
@@ -237,18 +326,17 @@ class ExplanationHandler:
         R[0] = (A[0] * c + lb * cp + hb * cm).data
 
         #HEATMAP
-        heatmap_fig = self.heatmap(np.array(R[l][0]).sum(axis=0), 3.5, 3.5, img)
+        heatmap_fig = self.heatmap(np.array(R[l][0]).sum(axis=0), 10, 5, img, predicted_label)
 
-        #SEGMENTATION
-        segmented_heatmap = self.segmentation(heatmap_fig)
-        plt.axis('off')
-        plt.imshow(segmented_heatmap, cmap='winter', vmin=0, vmax=1)
-        cbar = plt.colorbar(orientation="horizontal", shrink=0.75, ticks=[0, 1])
-        cbar.ax.set_xticklabels(["Hintergrund", "relevanteste Bereiche"])
-        plt.show()
+        # Cluster the relevance map
+
+        clustered_image = self.cluster_relevance_map(np.array(R[l][0]).sum(axis=0), img, predicted_label)
+        self.overlay_clustered_on_grayscale(img, clustered_image, predicted_label, alpha=0.5) 
+        self.contour_relevance_map(np.array(R[l][0]).sum(axis=0), img, predicted_label) 
+
+    
+
+
+
 
         
-        #GRAPH
-        relevance_map = np.array(R[l][0]).sum(axis=0)
-        G, pos, width, height, img = self.graph(relevance_map, img) 
-        self.fully_connect_and_plot(G, img, pos, width, height)

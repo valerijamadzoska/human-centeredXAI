@@ -1,9 +1,5 @@
 import sys
 
-#/Users/valerijamadzoska/Desktop/human-centeredXAI/src
-#C:/Users/icke/Desktop/human-centeredXAI-1/src
-sys.path.insert(0, '/Users/valerijamadzoska/Desktop/human-centeredXAI/src')
-
 from matplotlib import pyplot as plt
 from explanation_handler import ExplanationHandler
 from image_handler import ImageHandler
@@ -13,9 +9,9 @@ import platform
 def check_os():
     system = platform.system()
     if system == 'Windows':
-        #C:\\Users\\icke\\Downloads\\rooster-1867562_1280.jpg
-        #C:\\Users\\icke\\Downloads\\ILSVRC2012_test_00000002.JPEG
-        return 'C:\\Users\\icke\\Desktop\\InputImg\\ILSVRC2012_test_00000082.jpg'
+        #C:\\Users\\icke\\Downloads\\ILSVRC2012_test_00000090.jpg
+        #C:\\Users\\icke\\Desktop\\InputImg\\ILSVRC2012_test_00000037.jpg
+        return 'C:\\Users\\icke\\Desktop\\InputImg\\ILSVRC2012_test_00000002.JPEG'
     elif system == 'Darwin':
         return '/Users/valerijamadzoska/Desktop/bilderBA/rooster-1867562_640.jpg'
     else:
@@ -31,4 +27,4 @@ if __name__ == "__main__":
     predicted_label = model_handler.predict_label(model, input_tensor)
 
     print('Predicted label:', predicted_label)
-    explanation_handler.explain(model, input_tensor, image_path, "vgg")
+    explanation_handler.explain(model, input_tensor, image_path, "vgg", predicted_label)
