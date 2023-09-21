@@ -21,7 +21,6 @@ class ExplanationHandler:
     def __init__(self, model):
         self.model = model
 
-
     def heatmap(self, R, sx, sy, img, predicted_label, save=True):
         #zunächst Originalbild kopieren und für imshow vorbereiten
         image_copy = np.copy(img)
@@ -39,7 +38,7 @@ class ExplanationHandler:
         axes[0].axis('off')
         
         # Heatmap
-        im = axes[1].imshow(R, cmap='turbo')
+        im = axes[1].imshow(R, cmap='cividis')
         axes[1].set_title("Ergebnis")
         axes[1].axis('off')
         
@@ -68,11 +67,34 @@ class ExplanationHandler:
 
         return R
     
+    def save_relevance_map_as_csv(self, R, predicted_label):
+
+        output_dir = "Output"
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            
+        # Formatieren Sie den predicted_label, um sicherzustellen, dass er in einem Dateipfad sicher verwendet werden kann
+        label_str = predicted_label.replace(':', '_').replace(' ', '_').replace(',', '')
+        
+        # Erstellen Sie den Pfad für die CSV-Datei
+        csv_path = os.path.join(output_dir, f"heatmap{label_str}.csv")
+        
+        # Speichern Sie die Relevanzkarte als CSV
+        try:
+            np.savetxt(csv_path, R, delimiter=",")
+            print(f"Relevanzkarte erfolgreich gespeichert unter: {csv_path}")
+        except Exception as e:
+            print(f"Fehler beim Speichern der Relevanzkarte: {e}")
+
     def cluster_relevance_map(self, R, img, predicted_label, save=True, colors=None):
+
         # Falls keine Farben angegeben sind, verwende Standardfarben
         if colors is None:
-            colors = ['lightgray', 'yellow', 'palevioletred']
+            colors = ['indigo', 'darkcyan', 'yellow']
         cmap = mcolors.ListedColormap(colors)
+        
+        # BoundaryNorm verwenden
+        norm = mcolors.BoundaryNorm(boundaries=[0,1,2,3], ncolors=cmap.N)
         
         # Flattening der Relevance Map
         R_flattened = R.reshape(-1, 1)
@@ -81,6 +103,14 @@ class ExplanationHandler:
         kmeans = KMeans(n_clusters=3)
         kmeans.fit(R_flattened)
         labels = kmeans.predict(R_flattened)
+        
+        # Sortieren der Cluster-Centroids und der zugehörigen Cluster-IDs
+        sorted_centroids_idx = np.argsort(kmeans.cluster_centers_.squeeze())
+        
+        # Setzen Sie die Cluster-Labels basierend auf den sortierten Cluster-Centroids
+        for i, cluster_id in enumerate(sorted_centroids_idx):
+            labels[labels == cluster_id] = i + 10  # Temporäre IDs verwenden, um Kollisionen zu vermeiden
+        labels -= 10  # Zurück zu 0, 1, 2
         
         # Shape der Cluster-Labels an die ursprüngliche Relevance Map anpassen
         cluster_map = labels.reshape(R.shape)
@@ -101,18 +131,26 @@ class ExplanationHandler:
         axes[0].axis('off')
         
         # Geclusterte Heatmap
-        img = axes[1].imshow(cluster_map, cmap=cmap)
+        img = axes[1].imshow(cluster_map, cmap=cmap, norm=norm)
+
+        # Zählen der Datenpunkte in jedem Cluster
+        cluster_counts = [np.sum(labels == i) for i in range(3)]
+        print("Cluster counts:", cluster_counts)
+
+        cluster_bounds = [0] + list(np.cumsum(cluster_counts))
+
+        # Erstellen der horizontalen Farbleiste mit Ticks und Beschriftungen
+        cbar = fig.colorbar(img, ax=axes[1], orientation='horizontal', boundaries=cluster_bounds, values=[0,1,2])
         
-        # Erstellen der horizontalen Farbleiste mit drei Tick-Labels entsprechend den Clustern
-        unique_labels = np.unique(cluster_map)
-        cbar = fig.colorbar(img, ax=axes[1], ticks=unique_labels, orientation='horizontal')
-        cbar.ax.set_xticks(unique_labels)  # Place ticks at the left side of each block
-        cbar.ax.set_xticklabels(['Nicht Relevant', 'Wichtiger Bereich', 'Wichtigster Bereich'], ha='left')
-        
-        # Adjust the tick label position to be left of the color blocks
-        for label in cbar.ax.xaxis.get_ticklabels():
-            label.set_horizontalalignment('center')
-        
+        # Runden der Cluster-Centroids auf drei Nachkommastellen und Einstellen der Tick-Labels
+        tick_1 = round(float(kmeans.cluster_centers_[sorted_centroids_idx[0]]), 3)
+        tick_2 = round(float(kmeans.cluster_centers_[sorted_centroids_idx[1]]), 3)
+        tick_3 = round(float(kmeans.cluster_centers_[sorted_centroids_idx[2]]), 3)
+
+        cbar.ax.set_xticks([cluster_bounds[0], cluster_bounds[1], cluster_bounds[2], cluster_bounds[3]])
+        cbar.ax.set_xticklabels([f'0: {tick_1}', f'1: {tick_2}', f'2: {tick_3}', ''])
+
+
         axes[1].set_title("Ergebnis")
         axes[1].axis('off')
 
@@ -179,8 +217,6 @@ class ExplanationHandler:
         
         plt.show()
 
-
-
     def overlay_clustered_on_grayscale(self, img, clustered_image, predicted_label, alpha=0.5, save=True):
         # Bildvorbereitung
         image_copy = np.copy(img)
@@ -205,8 +241,12 @@ class ExplanationHandler:
         axes[1].imshow(grayscale_image_rgb, cmap='gray', alpha=alpha-0.1)
         im = axes[1].imshow(clustered_image, alpha=alpha)
         
-        # Add colorbar
-        cbar = fig.colorbar(im, ax=axes[1], orientation='horizontal')
+        cbar_min = np.nanmin(clustered_image)
+        cbar_max = np.nanmax(clustered_image)
+
+        cbar = fig.colorbar(im, ax=axes.ravel().tolist(), orientation='horizontal', 
+                            ticks=[cbar_min, 0, cbar_max])
+        cbar.ax.set_xticklabels([cbar_min,0,  cbar_max])
 
         axes[1].set_title("Ergebnis")
         axes[1].axis('off')
@@ -327,6 +367,9 @@ class ExplanationHandler:
 
         #HEATMAP
         heatmap_fig = self.heatmap(np.array(R[l][0]).sum(axis=0), 10, 5, img, predicted_label)
+
+        #self.save_relevance_map_as_csv(np.array(R[l][0]).sum(axis=0), predicted_label)
+
 
         # Cluster the relevance map
 
