@@ -47,7 +47,7 @@ class ExplanationHandler:
         cbar_max = np.nanmax(R)
         cbar = fig.colorbar(im, ax=axes.ravel().tolist(), orientation='horizontal', 
                             ticks=[cbar_min, 0, cbar_max])
-        cbar.ax.set_xticklabels([cbar_min,0,  cbar_max])
+        cbar.ax.set_xticklabels(['spricht gegen die Vorhersage','nicht relevant für die Vorhersage',  'spricht für die Vorhersage'])
         
         if save:
             output_dir = "Output"
@@ -133,24 +133,17 @@ class ExplanationHandler:
         # Geclusterte Heatmap
         img = axes[1].imshow(cluster_map, cmap=cmap, norm=norm)
 
-        # Zählen der Datenpunkte in jedem Cluster
-        cluster_counts = [np.sum(labels == i) for i in range(3)]
-        print("Cluster counts:", cluster_counts)
-
-        cluster_bounds = [0] + list(np.cumsum(cluster_counts))
-
-        # Erstellen der horizontalen Farbleiste mit Ticks und Beschriftungen
-        cbar = fig.colorbar(img, ax=axes[1], orientation='horizontal', boundaries=cluster_bounds, values=[0,1,2])
         
-        # Runden der Cluster-Centroids auf drei Nachkommastellen und Einstellen der Tick-Labels
-        tick_1 = round(float(kmeans.cluster_centers_[sorted_centroids_idx[0]]), 3)
-        tick_2 = round(float(kmeans.cluster_centers_[sorted_centroids_idx[1]]), 3)
-        tick_3 = round(float(kmeans.cluster_centers_[sorted_centroids_idx[2]]), 3)
+         # Erstellen der horizontalen Farbleiste mit Ticks und Beschriftungen
+        cbar = fig.colorbar(img, ax=axes.ravel().tolist(), orientation='horizontal', boundaries=[0,1,2,3])
+        cbar.ax.set_xticks([0, 0.5, 1, 1.5, 2, 2.5])
+        cbar.ax.set_xticklabels(['', 'Nicht Relevant', '', 'Wichtiger Bereich', '', 'Wichtigster Bereich'])
 
-        cbar.ax.set_xticks([cluster_bounds[0], cluster_bounds[1], cluster_bounds[2], cluster_bounds[3]])
-        cbar.ax.set_xticklabels([f'0: {tick_1}', f'1: {tick_2}', f'2: {tick_3}', ''])
-
-
+        
+        # Adjust the tick label position to be left of the color blocks
+        for label in cbar.ax.xaxis.get_ticklabels():
+            label.set_horizontalalignment('center')
+        
         axes[1].set_title("Ergebnis")
         axes[1].axis('off')
 
@@ -180,7 +173,7 @@ class ExplanationHandler:
         image_copy = (image_copy * 255).astype(np.uint8) # Convert to 8-bit values
 
         # Create a figure and a set of subplots
-        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
+        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(18, 13))
 
         # Display the original image
         axes[0].imshow(image_copy)
@@ -202,7 +195,7 @@ class ExplanationHandler:
         cbar_min = np.nanmin(R)
         cbar_max = np.nanmax(R)
         cbar = fig.colorbar(im, ax=axes.ravel().tolist(), orientation='horizontal', ticks=[cbar_min, 0, cbar_max])
-        cbar.ax.set_xticklabels(["nicht relevant",0,  "relevanteste Pixel"])
+        cbar.ax.set_xticklabels(['spricht gegen die Vorhersage','nicht relevant für die Vorhersage',  'spricht für die Vorhersage'])
         
         if save:
             output_dir = "Output"
@@ -241,12 +234,10 @@ class ExplanationHandler:
         axes[1].imshow(grayscale_image_rgb, cmap='gray', alpha=alpha-0.1)
         im = axes[1].imshow(clustered_image, alpha=alpha)
         
-        cbar_min = np.nanmin(clustered_image)
-        cbar_max = np.nanmax(clustered_image)
 
         cbar = fig.colorbar(im, ax=axes.ravel().tolist(), orientation='horizontal', 
-                            ticks=[cbar_min, 0, cbar_max])
-        cbar.ax.set_xticklabels([cbar_min,0,  cbar_max])
+                            ticks=[0, 1, 2])
+        cbar.ax.set_xticklabels(['Nicht Relevant', 'Wichtiger Bereich', 'Wichtigster Bereich'])
 
         axes[1].set_title("Ergebnis")
         axes[1].axis('off')
@@ -366,7 +357,7 @@ class ExplanationHandler:
         R[0] = (A[0] * c + lb * cp + hb * cm).data
 
         #HEATMAP
-        heatmap_fig = self.heatmap(np.array(R[l][0]).sum(axis=0), 10, 5, img, predicted_label)
+        heatmap_fig = self.heatmap(np.array(R[l][0]).sum(axis=0), 18, 13, img, predicted_label)
 
         #self.save_relevance_map_as_csv(np.array(R[l][0]).sum(axis=0), predicted_label)
 
