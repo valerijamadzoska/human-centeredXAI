@@ -21,7 +21,7 @@ class ExplanationHandler:
     def __init__(self, model):
         self.model = model
 
-    def heatmap(self, R, sx, sy, img, predicted_label, save=True):
+    def heatmap(self, R, sx, sy, img, predicted_label, user_input, save=True):
         #zunächst Originalbild kopieren und für imshow vorbereiten
         image_copy = np.copy(img)
         mean = np.array([0.485, 0.456, 0.406])
@@ -47,7 +47,7 @@ class ExplanationHandler:
         cbar_max = np.nanmax(R)
         cbar = fig.colorbar(im, ax=axes.ravel().tolist(), orientation='horizontal', 
                             ticks=[cbar_min, 0, cbar_max])
-        cbar.ax.set_xticklabels(['spricht gegen die Vorhersage','nicht relevant für die Vorhersage',  'spricht für die Vorhersage'])
+        cbar.ax.set_xticklabels(['spricht gegen die Entscheidung','nicht relevant für die Entscheidung',  'spricht für die Entscheidung'])
         
         if save:
             output_dir = "Output"
@@ -57,7 +57,7 @@ class ExplanationHandler:
             # Konvertieren Sie predicted_label in einen String, falls es ein Tensor oder eine andere Datenstruktur ist
             label_str = predicted_label.replace(':', '_').replace(' ', '_').replace(',', '')
     
-            output_path = os.path.join(output_dir, f"heatmap{label_str}.png")
+            output_path = os.path.join(output_dir, f"heatmap{label_str+user_input}.png")
             try:
                 plt.savefig(output_path, bbox_inches='tight', format='png')
             except Exception as e:
@@ -86,7 +86,7 @@ class ExplanationHandler:
         except Exception as e:
             print(f"Fehler beim Speichern der Relevanzkarte: {e}")
 
-    def cluster_relevance_map(self, R, img, predicted_label, save=True, colors=None):
+    def cluster_relevance_map(self, R, img, predicted_label, user_input, save=True, colors=None):
 
         # Falls keine Farben angegeben sind, verwende Standardfarben
         if colors is None:
@@ -154,7 +154,7 @@ class ExplanationHandler:
                 os.makedirs(output_dir)
                 
             label_str = predicted_label.replace(':', '_').replace(' ', '_').replace(',', '')
-            output_path = os.path.join(output_dir, f"clustered_heatmap_{label_str}.png")
+            output_path = os.path.join(output_dir, f"clustered_heatmap_{label_str+user_input}.png")
             
             try:
                 plt.savefig(output_path, bbox_inches='tight', format='png')
@@ -164,7 +164,7 @@ class ExplanationHandler:
         plt.show()
         return cluster_map
 
-    def contour_relevance_map(self, R, img, predicted_label, save=True):
+    def contour_relevance_map(self, R, img, predicted_label, user_input, save=True):
         # Prepare the original image for display
         image_copy = np.copy(img)
         mean = np.array([0.485, 0.456, 0.406])
@@ -195,14 +195,14 @@ class ExplanationHandler:
         cbar_min = np.nanmin(R)
         cbar_max = np.nanmax(R)
         cbar = fig.colorbar(im, ax=axes.ravel().tolist(), orientation='horizontal', ticks=[cbar_min, 0, cbar_max])
-        cbar.ax.set_xticklabels(['spricht gegen die Vorhersage','nicht relevant für die Vorhersage',  'spricht für die Vorhersage'])
+        cbar.ax.set_xticklabels(['spricht gegen die Entscheidung','nicht relevant für die Entscheidung',  'spricht für die Entscheidung'])
         
         if save:
             output_dir = "Output"
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
             label_str = predicted_label.replace(':', '_').replace(' ', '_').replace(',', '')
-            output_path = os.path.join(output_dir, f"contour_map{label_str}.png")
+            output_path = os.path.join(output_dir, f"contour_map{label_str+user_input}.png")
             try:
                 plt.savefig(output_path, bbox_inches='tight', format='png')
             except Exception as e:
@@ -210,7 +210,7 @@ class ExplanationHandler:
         
         plt.show()
 
-    def overlay_clustered_on_grayscale(self, img, clustered_image, predicted_label, alpha=0.5, save=True):
+    def overlay_clustered_on_grayscale(self, img, clustered_image, predicted_label, user_input, alpha=0.5, save=True):
         # Bildvorbereitung
         image_copy = np.copy(img)
         mean = np.array([0.485, 0.456, 0.406])
@@ -249,7 +249,7 @@ class ExplanationHandler:
             
             # Konvertieren Sie predicted_label in einen String, falls es ein Tensor oder eine andere Datenstruktur ist
             label_str = predicted_label.replace(':', '_').replace(' ', '_').replace(',', '')
-            output_path = os.path.join(output_dir, f"clusteredOverlay{label_str}.png")
+            output_path = os.path.join(output_dir, f"clusteredOverlay{label_str+user_input}.png")
             try:
                 plt.savefig(output_path, bbox_inches='tight', format='png')
             except Exception as e:
@@ -293,7 +293,7 @@ class ExplanationHandler:
 
         return newlayers
     
-    def explain(self, model, img, file, model_str, predicted_label, save=True):
+    def explain(self, model, img, file, model_str, predicted_label, user_input, save=True):
         """
         :param picture: at the moment string to picture location, can be changed to the picture itself
         :param model: the model to use, not the name the whole model itself
@@ -357,16 +357,16 @@ class ExplanationHandler:
         R[0] = (A[0] * c + lb * cp + hb * cm).data
 
         #HEATMAP
-        heatmap_fig = self.heatmap(np.array(R[l][0]).sum(axis=0), 18, 13, img, predicted_label)
+        heatmap_fig = self.heatmap(np.array(R[l][0]).sum(axis=0), 18, 13, img, predicted_label, user_input)
 
         #self.save_relevance_map_as_csv(np.array(R[l][0]).sum(axis=0), predicted_label)
 
 
         # Cluster the relevance map
 
-        clustered_image = self.cluster_relevance_map(np.array(R[l][0]).sum(axis=0), img, predicted_label)
-        self.overlay_clustered_on_grayscale(img, clustered_image, predicted_label, alpha=0.5) 
-        self.contour_relevance_map(np.array(R[l][0]).sum(axis=0), img, predicted_label) 
+        clustered_image = self.cluster_relevance_map(np.array(R[l][0]).sum(axis=0), img, predicted_label, user_input)
+        self.overlay_clustered_on_grayscale(img, clustered_image, predicted_label, user_input, alpha=0.5) 
+        self.contour_relevance_map(np.array(R[l][0]).sum(axis=0), img, predicted_label, user_input) 
 
     
 

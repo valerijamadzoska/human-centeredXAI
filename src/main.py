@@ -9,8 +9,7 @@ import platform
 def check_os():
     system = platform.system()
     if system == 'Windows':
-        #C:\\Users\\icke\\Downloads\\ILSVRC2012_test_00000090.jpg
-        return 'C:\\Users\\icke\\Desktop\\InputImg\\ILSVRC2012_val_00002266.jpg'
+        return 'C:\\Users\\icke\\Desktop\\img\\448\\b8286429e9245e0dfe7b9bcaa5200df2de0499de.jpeg'
     elif system == 'Darwin':
         return '/Users/valerijamadzoska/Desktop/bilderBA/rooster-1867562_640.jpg'
     else:
@@ -26,4 +25,8 @@ if __name__ == "__main__":
     predicted_label = model_handler.predict_label(model, input_tensor)
 
     print('Predicted label:', predicted_label)
-    explanation_handler.explain(model, input_tensor, image_path, "vgg", predicted_label)
+
+    user_input = input('Prediction true or false?: ')
+    print('You entered:', user_input)
+
+    explanation_handler.explain(model, input_tensor, image_path, "vgg", predicted_label, user_input)
