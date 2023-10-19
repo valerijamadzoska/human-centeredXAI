@@ -256,7 +256,10 @@ class ExplanationHandler:
                 print(f"Fehler beim Speichern des Bildes: {e}")
 
         plt.show()
-        
+
+      #  
+    
+    #TODO Quellenangabe
     def newlayer(self, layer, g):
         layer = copy.deepcopy(layer)
 
@@ -272,6 +275,7 @@ class ExplanationHandler:
 
         return layer
 
+#TODO Quellenangabe
     def toconv(self, layers, model):
         newlayers = []
         for i, layer in enumerate(layers):
@@ -292,7 +296,8 @@ class ExplanationHandler:
                 newlayers += [layer]
 
         return newlayers
-    
+
+   #TODO Quellenangabe explain 
     def explain(self, model, img, file, model_str, predicted_label, user_input, save=True):
         """
         :param picture: at the moment string to picture location, can be changed to the picture itself
