@@ -1,6 +1,3 @@
-import sys
-
-from matplotlib import pyplot as plt
 from explanation_handler import ExplanationHandler
 from image_handler import ImageHandler
 from model_handler import ModelHandler
@@ -26,7 +23,8 @@ if __name__ == "__main__":
 
     print('Predicted label:', predicted_label)
 
+    #quick check for easy saving, is predictedLabel=GroundTruth?
     user_input = input('Prediction true or false?: ')
     print('You entered:', user_input)
 
-    explanation_handler.explain(model, input_tensor, image_path, "vgg", predicted_label, user_input)
+    explanation_handler.explain(model, input_tensor, image_path, predicted_label, user_input)

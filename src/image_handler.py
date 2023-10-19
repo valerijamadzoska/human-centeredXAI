@@ -2,6 +2,9 @@ from PIL import Image
 import torchvision.transforms as transforms
 
 class ImageHandler:
+    """
+    Handler class for image preprocessing
+    """    
     def preprocess_image(self, image_path):
         image = Image.open(image_path).convert('RGB')
         transform = transforms.Compose([
