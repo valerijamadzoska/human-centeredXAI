@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 
 df = pd.read_csv('data\data_human-centeredXAI_2023-10-18_22-34.csv', encoding='utf-16', sep='\t', header=0)
 
-
-
 def analyze_data(df, columns):
     counts = {}
     for column in columns:
@@ -16,7 +14,6 @@ def analyze_data(df, columns):
         counts[column] = value_counts.to_dict()
         
     return counts
-
 
 #counts = analyze_data(df, ['A001', 'A002', 'A004', 'A005'])
 #print(counts)
