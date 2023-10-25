@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt 
 
 
-df = pd.read_csv('data\data_human-centeredXAI_2023-10-18_22-34.csv', encoding='utf-16', sep='\t', header=0)
+df = pd.read_csv('data\data_human-centeredXAI_2023-10-24_15-13.csv', encoding='utf-16', sep='\t', header=0)
 
 def analyze_data(df, columns):
     counts = {}
