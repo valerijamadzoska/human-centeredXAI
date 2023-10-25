@@ -1,6 +1,7 @@
 import pandas as pd
 import re
-from scipy.stats import chi2_contingency
+from scipy.stats import ttest_1samp
+import os
 
 def calculate_heatmap(df: pd.DataFrame) -> dict:
     # Load the data from the CSV 
@@ -98,63 +99,62 @@ def calculate_classification_metrics(TP: int, TN: int, FP: int, FN: int) -> dict
         'Sensitivity': Sensitivity,
         'Specificity': Specificity
     }
-#######################################
-#chi-square-Test
-#######################################
-def chi_square_test(TP: int, TN: int, FP: int, FN: int) -> None:
-    # Creating a contingency table
-    contingency_table = [[TP, FP], [FN, TN]]
-    
-    chi2, p, dof, expected = chi2_contingency(contingency_table)
-    
-    print(f"Chi-Square value: {chi2}")
-    print(f"P-value: {p}")
-    print(f"Degrees of freedom: {dof}")
-    print(f"Expected frequencies table: \n{expected}")
-    
-    if p < 0.05:
-        print("The differences between the categories are statistically significant.")
-    else:
-        print("The differences between the categories are not statistically significant.")
 
 #######################################
 #Calculate Metrics for each Image
 #######################################
-def calculate_metrics_all_img(dataframe, start_column=1):
-    dataframe = pd.read_csv(dataframe, encoding='utf-16', sep='\t', header=0)
-    columns = dataframe.columns[start_column:]
-    
-    # Initialize dictionary for results
-    metrics = {}
-    for column in columns:
-        # Ensure the column name has the expected format
-        if '_' in column:
-            # Extract object name and type (01 or 02) from the column name
-            obj, obj_type = column.split('_')
-            
-            # Only columns with obj_type 01 or 02
-            if obj_type in ['01', '02']:
-                
-                # Check and create dictionary for each unique object
-                if obj not in metrics:
-                    metrics[obj] = {'True Positive': 0, 'True Negative': 0, 'False Negative': 0, 'False Positive': 0}
-                
-                # Calculate metrics 
-                if obj_type == '01':
-                    metrics[obj]['True Positive'] += (dataframe[column] == 1).sum()
-                    metrics[obj]['False Negative'] += (dataframe[column] == 2).sum()
-                elif obj_type == '02':
-                    metrics[obj]['True Negative'] += (dataframe[column] == 2).sum()
-                    metrics[obj]['False Positive'] += (dataframe[column] == 1).sum()
 
-    # Calculate emtrics
-    for obj in metrics.keys():
-        TP, TN, FP, FN = metrics[obj].values()
-        metrics[obj]['Accuracy'] = (TP + TN) / (TP + TN + FP + FN) if (TP + TN + FP + FN) != 0 else None
-        metrics[obj]['Sensitivity'] = TP / (TP + FN) if (TP + FN) != 0 else None
-        metrics[obj]['Specificity'] = TN / (TN + FP) if (TN + FP) != 0 else None
-         
-    return metrics
+columns = {
+    "TP": [f"F{num:03d}_01" for num in [101, 201, 301, 401, 103, 203, 303, 403, 105, 205, 305, 405, 107, 207, 307, 407]],
+    "TN": [f"F{num:03d}_02" for num in [102, 202, 302, 402, 104, 204, 304, 404, 106, 206, 306, 406, 108, 208, 308, 408]],
+    "FN": [f"F{num:03d}_02" for num in [101, 201, 301, 401, 103, 203, 303, 403, 105, 205, 305, 405, 107, 207, 307, 407]],
+    "FP": [f"F{num:03d}_01" for num in [102, 202, 302, 402, 104, 204, 304, 404, 106, 206, 306, 406, 108, 208, 308, 408]],
+}
+def calculate_accuracy(metrics: dict) -> float:
+    TP = metrics['TP']
+    TN = metrics['TN']
+    FP = metrics['FP']
+    FN = metrics['FN']
+    
+    # Check to avoid division by zero
+    if TP + TN + FP + FN == 0:
+        return None
+    
+    accuracy = (TP + TN) / (TP + TN + FP + FN)
+    return accuracy
+
+def calculate_metrics_all_Img(data: pd.DataFrame) -> dict:
+    data = pd.read_csv(file_path, encoding='utf-16', sep='\t', header=0)
+    all_metrics = {}
+    
+    # Looping through the specified range of objects
+    for i in range(101, 409):
+        obj = f"F{i:03d}"
+        metrics = {"TP": 0, "TN": 0, "FN": 0, "FP": 0}
+        
+        # Defining the column names based on the object
+        TP_column = f"{obj}_01" if f"{obj}_01" in columns['TP'] else 0
+        TN_column = f"{obj}_02" if f"{obj}_02" in columns['TN'] else 0
+        FN_column = f"{obj}_02" if f"{obj}_02" in columns['FN'] else 0
+        FP_column = f"{obj}_01" if f"{obj}_01" in columns['FP'] else 0
+        
+        # Counting the number of '2's in each specified column
+        metrics["TP"] = (data[TP_column] == 2).sum() if TP_column else 0
+        metrics["TN"] = (data[TN_column] == 2).sum() if TN_column else 0
+        metrics["FN"] = (data[FN_column] == 2).sum() if FN_column else 0
+        metrics["FP"] = (data[FP_column] == 2).sum() if FP_column else 0
+
+        # Calculating accuracy
+        metrics['Accuracy'] = calculate_accuracy(metrics)
+
+        # Adding the metrics for each object to the overall dictionary
+        all_metrics[obj] = metrics
+        
+    return all_metrics
+
+
+
+
 
 
 # Method call
@@ -171,67 +171,18 @@ print("Cluster Overlay: ", result_cluster_overlay)
 result_contour = calculate_contour(file_path)
 print("Contour: ", result_contour)
 
-metricsForEachImg = calculate_metrics_all_img(file_path)
-print("Img: ", metricsForEachImg)
+# List of objects to calculate the metrics for
+objects = ["F101", "F102", "F103", "F104", "F201", "F202", "F203", "F204",
+           "F301", "F302", "F303", "F304", "F401", "F402", "F403", "F404"]
 
-print("Chi-square Test for HeatMap:")
-chi_square_test(result_heatmap['True Positive (TP)'], 
-               result_heatmap['True Negative (TN)'], 
-               result_heatmap['False Positive (FP)'], 
-               result_heatmap['False Negative (FN)']) 
-print("Chi-square Test for Cluster:")  
-chi_square_test(result_cluster['True Positive (TP)'], 
-               result_cluster['True Negative (TN)'], 
-               result_cluster['False Positive (FP)'], 
-               result_cluster['False Negative (FN)'])
-print("Chi-square Test for Contour:")
-chi_square_test(result_contour['True Positive (TP)'], 
-               result_contour['True Negative (TN)'], 
-               result_contour['False Positive (FP)'], 
-               result_contour['False Negative (FN)'])
-print("Chi-square Test for Cluster as Overlay:")
-chi_square_test(result_cluster_overlay['True Positive (TP)'], 
-               result_cluster_overlay['True Negative (TN)'], 
-               result_cluster_overlay['False Positive (FP)'], 
-               result_cluster_overlay['False Negative (FN)']) 
+# Calculate and display the metrics for each object
+metrics = calculate_metrics_all_Img(file_path)
+print(metrics)
 
 ######################################
 #Test
 ######################################
 
-def calculate_metrics_101(csv_filepath):
-    
-    # Load the data from the CSV file
-    dataframe = pd.read_csv(csv_filepath, encoding='utf-16', sep='\t', header=0)
-    
-    # Initialize dictionary for results
-    metrics = {'F101_01': {'True Positive': 0, 'False Negative': 0}, 'F101_02': {'True Negative': 0, 'False Positive': 0}}
-    
-    metrics['F101_01']['True Positive'] = (dataframe["F101_01"] == 1).sum()
-    metrics['F101_01']['False Negative'] = (dataframe["F101_01"] == 2).sum()
-    metrics['F101_02']['True Negative'] = (dataframe["F101_02"] == 2).sum()
-    metrics['F101_02']['False Positive'] = (dataframe["F101_02"] == 1).sum()
-                 
-    return metrics
-
-metrics = calculate_metrics_101(file_path)
-print("TEST: ", metrics)
-
-
-def calculate_metrics_107(csv_filepath):
-    dataframe = pd.read_csv(csv_filepath, encoding='utf-16', sep='\t', header=0)
-    metrics = {
-        'F107_01': {'True Positive': 0, 'False Negative': 0},
-        'F107_02': {'True Negative': 0, 'False Positive': 0}
-    }
-    metrics['F107_01']['True Positive'] = (dataframe.iloc[:, 41] == 1).sum()
-    metrics['F107_01']['False Negative'] = (dataframe.iloc[:, 41] == 2).sum()
-    metrics['F107_02']['True Negative'] = (dataframe.iloc[:, 42] == 2).sum()
-    metrics['F107_02']['False Positive'] = (dataframe.iloc[:, 42] == 1).sum()        
-    return metrics
-
-metrics = calculate_metrics_107(file_path)
-print("TEST: ", metrics)
 
 
 
