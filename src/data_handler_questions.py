@@ -158,7 +158,7 @@ def calculate_metrics_all_Img(data: pd.DataFrame) -> dict:
 
 
 # Method call
-file_path = 'data\data_human-centeredXAI_2023-10-25_09-51.csv'
+file_path = 'data/data_human-centeredXAI_2023-10-25_09-51.csv'
 result_heatmap = calculate_heatmap(file_path)
 print( "Heatmap: ", result_heatmap)
 
