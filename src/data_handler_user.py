@@ -20,9 +20,10 @@ def analyze_data(df, columns):
 
 def plot_result(counts, column, title, xlabel, ylabel, labels):
     """
-    This function plots a bar chart.
+    This function plots a bar chart with values displayed on top of each bar.
     
-    :param data: Dictionary containing the data to plot
+    :param counts: Dictionary containing the data to plot
+    :param column: Name of the column in the dictionary to use for plotting
     :param title: Title of the chart
     :param xlabel: Label for the x-axis
     :param ylabel: Label for the y-axis
@@ -30,24 +31,27 @@ def plot_result(counts, column, title, xlabel, ylabel, labels):
     """
     data = counts[column]
     
-    #bar chart
+    # Create a bar chart
     plt.figure(figsize=(8, 5))
     
-    # Creating bars one by one and setting individual labels
+    # Create bars and display values on top of each bar
     for i, (group, value) in enumerate(data.items()):
-        plt.bar(i, value, label=labels.get(str(group), f"Gruppe: {group}"))  
+        plt.bar(i, value, label=labels.get(str(group), f"Gruppe: {group}"))
+        plt.text(i, value, str(value), ha='center', va='bottom')
     
-    # Adding titles and labels
+    # Add titles and labels
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     
-    # Adding legend
+    # Add legend
     plt.legend()
     
-    # Displaying the chart
+    # Display the chart
     plt.xticks(range(len(data)), list(data.keys()))  # Setting xticks labels
     plt.show()
+
+
 
 # Assuming counts is the output from your analyze_data function
 counts = analyze_data(df, ['A001', 'A002', 'A004', 'A005'])
