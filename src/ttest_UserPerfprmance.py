@@ -30,12 +30,10 @@ def one_sample_ttest(filename, expected_mean=0.593, column_index=3):
 
     return t_stat, p_value
 
-# call
-p_value = one_sample_ttest(r'C:\Users\icke\Desktop\human-centeredXAI-1\data\userPerformance.csv')
-
+# call t-test
+#p_value = one_sample_ttest(r'C:\Users\icke\Desktop\human-centeredXAI-1\data\userPerformance.csv')
 # Print the result
-print("P-Value:")
-print(p_value)
-
+#print("P-Value:")
+#print(p_value)
 # Call the append_column_means function
-append_column_means(r'C:\Users\icke\Desktop\human-centeredXAI-1\data\userPerformance.csv')
+#append_column_means(r'C:\Users\icke\Desktop\human-centeredXAI-1\data\userPerformance.csv')
