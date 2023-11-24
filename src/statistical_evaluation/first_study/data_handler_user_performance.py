@@ -16,8 +16,18 @@ def calculate_row_metrics(row, columns_tp, columns_tn, columns_fp, columns_fn):
         'Specificity': Specificity
     })
 
+# mean metrics in dependency on age/ AI knowledge/XAI knowledge/Vision
+def calculate_average_metrics_age_group(df, df_metrics, age_column):
+    #Alter: 1= unter 30, 2=30-50, 3=51-60, 4=über 61
+    #AI Knowledge: 1=keine, 2= etwas gehört, 3= Tools angewandt, 4=programmiert
+    #XAI Knowledge: 1=keine, 2= etwas gehört, 3= Tools angewandt, 4=programmiert
+    #Farbensehen gestört=1, schlechte Sehkraft= 2, keine Beeinträchtigung=3, sonstige=4
+    df_group = df[df[age_column] == 3]
+    average_metrics = df_metrics.loc[df_group.index].mean()
+    return average_metrics
+
 # Load the data
-file_path = 'data\data_human-centeredXAI_2023-10-31_15-46.csv'
+file_path = '/Users/valerijamadzoska/human-centeredXAI/data/first_study/data_human-centeredXAI_2023-10-31_15-46.csv'
 df = pd.read_csv(file_path, encoding='utf-16', sep='\t', header=0)
 
 # Clean the data
@@ -59,5 +69,43 @@ for metric_type, columns in column_groups.items():
         lambda row: calculate_row_metrics(row, columns['TP'], columns['TN'], columns['FP'], columns['FN']), axis=1)
 
 # Save results
-output_file_path = r'C:\Users\icke\Desktop\human-centeredXAI-1\data\userPerformance.csv'
+output_file_path = '/Users/valerijamadzoska/human-centeredXAI/data/first_study/userPerformance.csv'
 metrics_df.to_csv(output_file_path, index=False)
+
+##########################
+#mean metrics depending on age
+##########################
+
+
+#mean metrics for user under 30 / 30-50 / 51-60 / over 61 
+average_accuracy_under30 = calculate_average_metrics_age_group(df_cleaned, metrics_df, 'A001')
+print("Durchschnittliche Metriken für Benutzer im Alter über 61:")
+print(average_accuracy_under30)
+
+
+##########################
+#mean metrics depending on AI knowledge
+##########################
+
+#mean metrics for user with AI knowledge: keine/ etwas gehört/ Tools angewandt/ programmiert
+average_metrics_ai = calculate_average_metrics_age_group(df_cleaned, metrics_df, 'A002')
+print("Durchschnittliche Metriken für Benutzer die KI programmiert haben:")
+print(average_metrics_ai)
+
+##########################
+#mean metrics depending on XAI knowledge
+##########################
+
+#mean metrics for user with XAI knowledge: keine/ etwas gehört/ Tools angewandt/ programmiert
+average_metrics_xai = calculate_average_metrics_age_group(df_cleaned, metrics_df, 'A004')
+print("Durchschnittliche Metriken für Benutzer die  XAI programmiert haben:")
+print(average_metrics_xai)
+
+##########################
+#mean metrics depending on vision
+##########################
+
+#mean metrics for user with Farbensehen gestört/schlechte Sehkraft/keine Beeinträchtigung/
+average_metrics_vision = calculate_average_metrics_age_group(df_cleaned, metrics_df, 'A005')
+print("Durchschnittliche Metriken für Benutzer mit keiner Beeinträchtigung:")
+print(average_metrics_vision)

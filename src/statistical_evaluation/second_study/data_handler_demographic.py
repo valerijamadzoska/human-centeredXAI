@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt 
 
 
-df = pd.read_csv('/Users/valerijamadzoska/human-centeredXAI/data/first_study/data_human-centeredXAI_2023-10-31_15-46.csv', encoding='utf-16', sep='\t', header=0)
+df = pd.read_csv('/Users/valerijamadzoska/human-centeredXAI/data/second_study/data_human-centered_XAI_2023-11-22_13-07.csv', encoding='utf-16', sep='\t', header=0)
 
 def analyze_data(df, columns):
     counts = {}
@@ -54,7 +54,7 @@ def plot_result(counts, column, title, xlabel, ylabel, labels):
 
 
 # Assuming counts is the output from your analyze_data function
-counts = analyze_data(df, ['A001', 'A002', 'A004', 'A005'])
+counts = analyze_data(df, ['Y101', 'Y102', 'Y104', 'Y105'])
 
 #Plot Alter
 age_labels = {
@@ -64,7 +64,7 @@ age_labels = {
     "4": "über 60",
     "5": "keine Angabe"
 }
-plot_result(counts, 'A001', 'Altersverteilung der Teilnehmer', 'Altersgruppe', 'Gruppengröße', age_labels)
+plot_result(counts, 'Y101', 'Altersverteilung der Teilnehmer', 'Altersgruppe', 'Gruppengröße', age_labels)
 
 #Plot Erfahrung KI
 experience_labels = {
@@ -73,7 +73,7 @@ experience_labels = {
     "3": "KI-basierte Tools verwendet oder mit KI gearbeitet",
     "4": "selbst KI programmiert",
 }
-plot_result(counts, 'A002', 'Erfahrungen der Teilnehmer mit der KI', 'Niveau', 'Gruppengröße', experience_labels)
+plot_result(counts, 'Y102', 'Erfahrungen der Teilnehmer mit der KI', 'Niveau', 'Gruppengröße', experience_labels)
 
 #Plot Erfahrung XAI
 experience_labelsXAI = {
@@ -82,7 +82,7 @@ experience_labelsXAI = {
     "3": "XAI-Techniken angewandt",
     "4": "selbst XAI Technik programmiert",
 }
-plot_result(counts, 'A004', 'Erfahrungen der Teilnehmer mit der XAI', 'Niveau', 'Gruppengröße', experience_labelsXAI)
+plot_result(counts, 'Y104', 'Erfahrungen der Teilnehmer mit der XAI', 'Niveau', 'Gruppengröße', experience_labelsXAI)
 
 #Plot Augenleiden
 vision_labels = {
@@ -92,4 +92,4 @@ vision_labels = {
     "3": "Keine Beeinträchtigungen",
     "5": "Keine Antwort"
 }
-plot_result(counts, 'A005', 'Beeinträchtigung durch Augenleiden', 'Ausprägung der Beeinträchtigung', 'Gruppengröße', vision_labels)
+plot_result(counts, 'Y105', 'Beeinträchtigung durch Augenleiden', 'Ausprägung der Beeinträchtigung', 'Gruppengröße', vision_labels)

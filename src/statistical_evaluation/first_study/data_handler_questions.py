@@ -1,7 +1,4 @@
 import pandas as pd
-import re
-from scipy.stats import ttest_1samp
-import os
 
 def calculate_heatmap(df: pd.DataFrame) -> dict:
     # Load the data from the CSV 
@@ -158,7 +155,7 @@ def calculate_metrics_all_Img(data: pd.DataFrame) -> dict:
 
 
 # Method call
-file_path = 'data/data_human-centeredXAI_2023-10-25_09-51.csv'
+file_path = '/Users/valerijamadzoska/human-centeredXAI/data/first_study/data_human-centeredXAI_2023-10-31_15-46.csv'
 result_heatmap = calculate_heatmap(file_path)
 print( "Heatmap: ", result_heatmap)
 
