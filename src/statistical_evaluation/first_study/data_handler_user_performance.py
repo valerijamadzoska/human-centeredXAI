@@ -27,39 +27,38 @@ def calculate_average_metrics_age_group(df, df_metrics, age_column):
     return average_metrics
 
 # Load the data
-file_path = '/Users/valerijamadzoska/human-centeredXAI/data/first_study/data_human-centeredXAI_2023-10-31_15-46.csv'
-df = pd.read_csv(file_path, encoding='utf-16', sep='\t', header=0)
+file_path = '//Users/valerijamadzoska/human-centeredXAI/data/second_study/data_human-centered_XAI_2023-12-01_01-29.csv'
+df = pd.read_csv(file_path, encoding='utf-8', sep=';', header=0)
 
 # Clean the data
 df_cleaned = df.drop(0).reset_index(drop=True)
 df_cleaned = df_cleaned.apply(pd.to_numeric, errors='ignore')
 
 column_groups = {
-    'heatmap': {
-        'TP': ['F101_01', 'F201_01', 'F301_01', 'F401_01'],
-        'TN': ['F102_02', 'F202_02', 'F302_02', 'F402_02'],
-        'FN': ['F101_01', 'F201_01', 'F301_01', 'F401_01'],
-        'FP': ['F102_02', 'F202_02', 'F302_02', 'F402_02']
-        
-    },
-    'cluster': {
-        'TP': ['F105_01', 'F205_01', 'F305_01', 'F405_01'],
-        'TN': ['F106_02', 'F206_02', 'F306_02', 'F406_02'],
-        'FN': ['F105_01', 'F205_01', 'F305_01', 'F405_01'],
-        'FP': ['F106_02', 'F206_02', 'F306_02', 'F406_02']
-    },
-        'cluster_overlay': {
-        'TP': ['F103_01', 'F203_01', 'F303_01', 'F403_01'],
-        'TN': ['F104_02', 'F204_02', 'F304_02', 'F404_02'],
-        'FN': ['F103_01', 'F203_01', 'F303_01', 'F403_01'],
-        'FP': ['F104_02', 'F204_02', 'F304_02', 'F404_02']
-    },
-        'contour': {
-        'TP': ['F107_01', 'F207_01', 'F307_01', 'F407_01'],
-        'TN': ['F108_02', 'F208_02', 'F308_02', 'F408_02'],
-        'FN': ['F107_01', 'F207_01', 'F307_01', 'F407_01'],
-        'FP': ['F108_02', 'F208_02', 'F308_02', 'F408_02']
-    }
+'heatmap': {
+    'TP': ['C101_01', 'C201_01', 'C301_01', 'C401_01'],
+    'TN': ['C102_02', 'C202_02', 'C302_02', 'C402_02'],
+    'FN': ['C101_01', 'C201_01', 'C301_01', 'C401_01'],
+    'FP': ['C102_02', 'C202_02', 'C302_02', 'C402_02']
+},
+'cluster': {
+    'TP': ['C105_01', 'C205_01', 'C305_01', 'C405_01'],
+    'TN': ['C106_02', 'C206_02', 'C306_02', 'C406_02'],
+    'FN': ['C105_01', 'C205_01', 'C305_01', 'C405_01'],
+    'FP': ['C106_02', 'C206_02', 'C306_02', 'C406_02']
+},
+'cluster_overlay': {
+    'TP': ['C103_01', 'C203_01', 'C303_01', 'C403_01'],
+    'TN': ['C104_02', 'C204_02', 'C304_02', 'C404_02'],
+    'FN': ['C103_01', 'C203_01', 'C303_01', 'C403_01'],
+    'FP': ['C104_02', 'C204_02', 'C304_02', 'C404_02']
+},
+'contour': {
+    'TP': ['C107_01', 'C207_01', 'C307_01', 'C407_01'],
+    'TN': ['C108_02', 'C208_02', 'C308_02', 'C408_02'],
+    'FN': ['C107_01', 'C207_01', 'C307_01', 'C407_01'],
+    'FP': ['C108_02', 'C208_02', 'C308_02', 'C408_02']
+}
 }
 
 # Calculate metrics, store the results 
@@ -69,7 +68,7 @@ for metric_type, columns in column_groups.items():
         lambda row: calculate_row_metrics(row, columns['TP'], columns['TN'], columns['FP'], columns['FN']), axis=1)
 
 # Save results
-output_file_path = '/Users/valerijamadzoska/human-centeredXAI/data/first_study/userPerformance.csv'
+output_file_path = '/Users/valerijamadzoska/human-centeredXAI/data/second_study/userPerformanceC.csv'
 metrics_df.to_csv(output_file_path, index=False)
 
 ##########################

@@ -36,9 +36,9 @@ def one_sample_ttest(filename, expected_mean=0.593):
 
 
 
-# Beispielaufruf der Funktion mit einer Liste von Daten
-p_value = one_sample_ttest('/Users/valerijamadzoska/Desktop/human-centeredXAI-1/data/metricsEachUser.csv')
-print("Hallo")
-print(p_value)
+
+#p_value = one_sample_ttest('/Users/valerijamadzoska/Desktop/human-centeredXAI-1/data/metricsEachUser.csv')
+#print("Hallo")
+#print(p_value)
 
 append_column_means('/Users/valerijamadzoska/Desktop/human-centeredXAI-1/data/metricsEachUser.csv')

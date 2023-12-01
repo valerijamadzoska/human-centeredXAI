@@ -34,7 +34,7 @@ def calculate_accuracy(metrics: dict) -> float:
     return accuracy
 
 def calculate_metrics_all_Img(data: pd.DataFrame) -> dict:
-    data = pd.read_csv(file_path, encoding='utf-16', sep='\t', header=0)
+    data = pd.read_csv(file_path, encoding='utf-8', sep=';', header=0)
     all_metrics = {}
     
     # Looping through the specified range of objects
@@ -64,7 +64,7 @@ def calculate_metrics_all_Img(data: pd.DataFrame) -> dict:
     return all_metrics
 
     # Method call
-file_path = 'data/second_study/data_human-centered_XAI_2023-11-22_13-07.csv'
+file_path = '/Users/valerijamadzoska/human-centeredXAI/data/second_study/data_human-centered_XAI_2023-12-01_01-29.csv'
 # Calculate and display the metrics for each object
 metrics = calculate_metrics_all_Img(file_path)
 print(metrics)
